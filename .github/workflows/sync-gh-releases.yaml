@@ -1,0 +1,108 @@
+# Workflow for syncing upstream GitHub releases to local commits.
+# This workflow is not specific to snap releases.
+name: Sync upstream GitHub releases
+
+on:
+  workflow_call:
+    inputs:
+      upstream_repository:
+        description: "Path of the upstream repository. (e.g. octocat/Hello-World)"
+        required: true
+        type: string
+      max_releases:
+        description: "Number of recent releases to check for a new release."
+        type: number
+        default: 5
+      prep_script:
+        description: "The script that does any preparation for a release."
+        required: true
+        type: string
+      git_name:
+        description: "Name for this workflow to release under."
+        type: string
+        default: "sync-gh-release[bot]"
+      git_email:
+        description: "Email for this workflow to release under."
+        type: string
+        default: "sync-gh-release-bot@bots.noreply.github.com"
+
+# Ensure that only one instance of this workflow is running at a time per repo.
+concurrency: ${{ github.repository }}-${{ github.workflow }}
+
+permissions:
+  contents: write
+
+jobs:
+  sync_releases:
+    runs-on: ubuntu-latest
+    outputs:
+      release_tags:
+        ${{ fromJSON(steps.prep_releases.outputs.new_releases) }}
+    steps:
+      - name: Determine upstream releases to package
+        id: upstream_releases
+        run: |
+          upstream=${{ inputs.upstream_repository }}
+          rel_count=${{ inputs.max_releases }}
+          get_releases() { 
+            gh api "repos/${upstream}/releases?per_page=${rel_count}" -q '.[].tag_name' | tac; 
+          }
+          check_release_tag() { gh api "repos/${{ github.repository }}/releases/tags/${1}" >> /dev/null 2>&1; }
+          get_unmatched_releases() {
+            for release in $(get_releases)
+            do
+              if ! check_release_tag $release
+              then
+                echo -n "${release} "
+              fi
+            done
+          }
+
+          releases="$(get_unmatched_releases)"
+          echo "releases=${releases}" | tee $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Checkout release repository
+        if: ${{ steps.upstream_releases.outputs.releases }}
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Prepare releases
+        id: prep_releases
+        if: ${{ steps.upstream_releases.outputs.releases }}
+        run: |
+          tag_exists() { [[ $(git tag --list "${1}") ]] }
+          git fetch --force --tags
+          git config user.name "${{ inputs.git_name }}"
+          git config user.email "${{ inputs.git_email }}"
+          echo -n 'new_releases=[' > "${RUNNER_TEMP}/new_releases"
+          
+          for release in ${{ steps.upstream_releases.outputs.releases }} ; do
+            if tag_exists "${release}"; then
+              echo "::warning::Tag ${release} already exists. Tagging as a rerelease..."
+              i=0
+              release_tag="${release}-rerelease${i}"
+              while tag_exists "${release_tag}"; do
+                i=$(( $i + 1 ))
+                release_tag="${release}-rerelease${i}"
+              done
+              echo "New tag: ${release_tag}"
+            else
+              release_tag="${release}"
+            fi
+            gh api "repos/${{ inputs.upstream_repository }}/releases/tags/${release}" > "${RUNNER_TEMP}/release.json
+            echo "::group::Running prep script for release ${release}..."
+            ${{ inputs.prep_script }} "${release}" "${release_tag}" "${RUNNER_TEMP}/release.json"
+            echo "::endgroup::"
+            echo "::group::Committing release ${release_tag}..."
+            git add --update --verbose
+            git commit --verbose --message "Sync upstream release ${release} as ${release_tag}"
+            git tag --message "Upstream release ${release}" "${release_tag}"
+            echo -n "'${release_tag}', " >> "${RUNNER_TEMP}/new_releases"
+            echo "::endgroup::"
+          done
+          echo ']' >> "${RUNNER_TEMP}/new_releases
+          cat "${RUNNER_TEMP}/new_releases" >> "${GITHUB_OUTPUT}"
+          echo "::group::Pushing changes..."
+          git push --tags --verbose
+          echo "::endgroup::"
