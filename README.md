@@ -36,7 +36,7 @@ permissions:
 
 jobs:
   sync-gh-releases:
-    uses: lengau/snappify/.github/workflows/sync-gh-releases.yaml@main
+    uses: lengau/snappify/github-workflows/sync-gh-releases.yaml@v0.0.1
     with:
       upstream_repository: octocat/Hello-World
       prep_script: release/prep_release.sh
@@ -80,3 +80,6 @@ directory in the RUNNER_TEMP enviranment variable. Tools to help you extract the
 necessary information in your prep script include [Python's `json` 
 module](https://docs.python.org/3.10/library/json.html) and the [`jq` terminal
 app](https://stedolan.github.io/jq/).
+
+You can see an example of this in action in the [gh-snap 
+repository](https://github.com/lengau/gh-snap/blob/main/.github/workflows/upstream-release.yaml)
