@@ -36,7 +36,7 @@ permissions:
 
 jobs:
   sync-gh-releases:
-    uses: lengau/snappify/github-workflows/sync-gh-releases.yaml@v0.0.1
+    uses: lengau/snappify/.github/workflows/sync-gh-releases.yaml@v0.0.1
     with:
       upstream_repository: octocat/Hello-World
       prep_script: release/prep_release.sh
