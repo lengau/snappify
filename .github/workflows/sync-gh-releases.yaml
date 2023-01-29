@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_tags:
-        ${{ steps.prep_releases.outputs.new_releases }}
+        ${{ steps.prep_releases.outputs.new_releases || '[]' }}
     steps:
       - name: Determine upstream releases to package
         id: upstream_releases
@@ -71,7 +71,7 @@ jobs:
         id: prep_releases
         if: ${{ steps.upstream_releases.outputs.releases }}
         run: |
-          tag_exists() { [[ $(git tag --list "${1}") ]] }
+          tag_exists() { [[ $(git tag --list "${1}") ]]; }
           git fetch --force --tags
           git config user.name "${{ inputs.git_name }}"
           git config user.email "${{ inputs.git_email }}"
