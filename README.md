@@ -49,7 +49,7 @@ jobs:
     strategy:
       max-parallel: 1  # Ensures the releases occur in the same order as upstream.
       matrix:
-        tag: ${{ needs.sync-gh-releases.outputs.release_tags }}
+        tag: ${{ fromJSON(needs.sync-gh-releases.outputs.release_tags) }}
     steps:
       - uses: actions/checkout@v3
         with:

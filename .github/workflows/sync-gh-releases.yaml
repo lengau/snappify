@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_tags:
-        ${{ fromJSON(steps.prep_releases.outputs.new_releases) }}
+        ${{ steps.prep_releases.outputs.new_releases }}
     steps:
       - name: Determine upstream releases to package
         id: upstream_releases
