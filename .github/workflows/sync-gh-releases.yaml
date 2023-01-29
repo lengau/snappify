@@ -25,6 +25,10 @@ on:
         description: "Email for this workflow to release under."
         type: string
         default: "sync-gh-release-bot@bots.noreply.github.com"
+    outputs:
+      release_tags:
+        description: "A JSON list of tags to release."
+        value: ${{ jobs.sync.outputs.release_tags }}
 
 # Ensure that only one instance of this workflow is running at a time per repo.
 concurrency: ${{ github.repository }}-${{ github.workflow }}
@@ -33,11 +37,10 @@ permissions:
   contents: write
 
 jobs:
-  sync_releases:
+  sync:
     runs-on: ubuntu-latest
     outputs:
-      release_tags:
-        ${{ steps.prep_releases.outputs.new_releases || '[]' }}
+      release_tags: ${{ steps.prep_releases.outputs.new_releases || '[]' }}
     steps:
       - name: Determine upstream releases to package
         id: upstream_releases
@@ -90,7 +93,7 @@ jobs:
             else
               release_tag="${release}"
             fi
-            gh api "repos/${{ inputs.upstream_repository }}/releases/tags/${release}" > "${RUNNER_TEMP}/release.json
+            gh api "repos/${{ inputs.upstream_repository }}/releases/tags/${release}" > "${RUNNER_TEMP}/release.json"
             echo "::group::Running prep script for release ${release}..."
             ${{ inputs.prep_script }} "${release}" "${release_tag}" "${RUNNER_TEMP}/release.json"
             echo "::endgroup::"
@@ -101,8 +104,11 @@ jobs:
             echo -n "'${release_tag}', " >> "${RUNNER_TEMP}/new_releases"
             echo "::endgroup::"
           done
-          echo ']' >> "${RUNNER_TEMP}/new_releases
-          cat "${RUNNER_TEMP}/new_releases" >> "${GITHUB_OUTPUT}"
+          echo ']' >> "${RUNNER_TEMP}/new_releases"
+          echo "New releases:"
+          cat "${RUNNER_TEMP}/new_releases" | tee -a "${GITHUB_OUTPUT}"
           echo "::group::Pushing changes..."
           git push --tags --verbose
           echo "::endgroup::"
+        env:
+          GH_TOKEN: ${{ github.token }}
