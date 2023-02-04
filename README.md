@@ -46,6 +46,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     needs: sync-gh-releases
+    # This conditional prevents the `release` job from running if no releases were found.
+    if: ${{ needs.sync-gh-releases.outputs.release_tags != '[]' && needs.sync-gh-releases.outputs.services != '' }}
     strategy:
       max-parallel: 1  # Ensures the releases occur in the same order as upstream.
       matrix:
