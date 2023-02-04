@@ -46,6 +46,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     needs: sync-gh-releases
+    # This conditional prevents the `release` job from running if no releases were found.
+    if: ${{ needs.sync-gh-releases.outputs.release_tags != '[]' && needs.sync-gh-releases.outputs.release_tags != '' }}
     strategy:
       max-parallel: 1  # Ensures the releases occur in the same order as upstream.
       matrix:
@@ -67,7 +69,7 @@ prep_script {upstream_release_tag} {release_tag} {upstream_release_json_file}
 For forwards compatibility, it should accept additional parameters. It must be 
 able to run on the [latest Ubuntu runner 
 image](https://github.com/actions/runner-images) with no additional software
-installed. (If additional software is needed, it may install it. But this is
+installed. (If additional software is needed, it may install it. This is
 the responsibility of the prep script.)
 
 In most cases, the upstream release tag and the release tag will be the same.
@@ -76,7 +78,7 @@ repository gets removed.
 
 The release JSON file is a JSON response from the GitHub API when querying
 for that particular upstream release. It will be placed in the temporary
-directory in the RUNNER_TEMP enviranment variable. Tools to help you extract the
+directory in the RUNNER_TEMP environment variable. Tools to help you extract the
 necessary information in your prep script include [Python's `json` 
 module](https://docs.python.org/3.10/library/json.html) and the [`jq` terminal
 app](https://stedolan.github.io/jq/).
