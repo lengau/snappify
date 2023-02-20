@@ -99,7 +99,7 @@ jobs:
             echo "::endgroup::"
             echo "::group::Committing release ${release_tag}..."
             git add --update --verbose
-            git commit --verbose --message "Sync upstream release ${release} as ${release_tag}"
+            git commit --verbose --message "Sync upstream release ${release} as ${release_tag}" || true
             git tag --message "Upstream release ${release}" "${release_tag}"
             echo -n "'${release_tag}', " >> "${RUNNER_TEMP}/new_releases"
             echo "::endgroup::"
