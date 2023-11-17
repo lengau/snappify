@@ -108,6 +108,7 @@ jobs:
           echo "New releases:"
           cat "${RUNNER_TEMP}/new_releases" | tee -a "${GITHUB_OUTPUT}"
           echo "::group::Pushing changes..."
+          git push
           git push --tags --verbose
           echo "::endgroup::"
         env:
