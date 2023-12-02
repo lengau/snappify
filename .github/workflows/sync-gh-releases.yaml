@@ -28,7 +28,6 @@ on:
       re_release:
         description: "Whether to do re-releases. It is recommended you leave this False and only set it to True for manual runs."
         type: boolean
-        default: false
     outputs:
       release_tags:
         description: "A JSON list of tags to release."
