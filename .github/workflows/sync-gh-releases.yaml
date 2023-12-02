@@ -84,7 +84,7 @@ jobs:
           echo -n 'new_releases=[' > "${RUNNER_TEMP}/new_releases"
           
           for release in ${{ steps.upstream_releases.outputs.releases }} ; do
-            if tag_exists "${release}" && [[ ${{ inputs.re_release == "true" }} ]]; then
+            if tag_exists "${release}" && [[ ${{ inputs.re_release }} == "true" ]]; then
               echo "::warning::Tag ${release} already exists. Tagging as a rerelease..."
               i=0
               release_tag="${release}-rerelease${i}"
