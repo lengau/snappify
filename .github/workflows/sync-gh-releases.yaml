@@ -25,6 +25,10 @@ on:
         description: "Email for this workflow to release under."
         type: string
         default: "sync-gh-release-bot@bots.noreply.github.com"
+      re_release:
+        description: "Whether to do re-releases. It is recommended you leave this False and only set it to True for manual runs."
+        type: boolean
+        default: false
     outputs:
       release_tags:
         description: "A JSON list of tags to release."
@@ -81,7 +85,7 @@ jobs:
           echo -n 'new_releases=[' > "${RUNNER_TEMP}/new_releases"
           
           for release in ${{ steps.upstream_releases.outputs.releases }} ; do
-            if tag_exists "${release}"; then
+            if tag_exists "${release}" && [[ ${{ inputs.re_release == "true" }} ]]; then
               echo "::warning::Tag ${release} already exists. Tagging as a rerelease..."
               i=0
               release_tag="${release}-rerelease${i}"
@@ -90,8 +94,11 @@ jobs:
                 release_tag="${release}-rerelease${i}"
               done
               echo "New tag: ${release_tag}"
-            else
+            elif ! tag_exists "${release}"; then
               release_tag="${release}"
+            else
+              echo "Release already exists. Ignoring..."
+              continue
             fi
             gh api "repos/${{ inputs.upstream_repository }}/releases/tags/${release}" > "${RUNNER_TEMP}/release.json"
             echo "::group::Running prep script for release ${release}..."
