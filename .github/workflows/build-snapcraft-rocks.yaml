@@ -49,3 +49,5 @@ jobs:
         run: |
           gh release create $(date --utc +%Y-%m-%d) --latest
           gh release upload *.rock
+        env:
+          GH_TOKEN: ${{ github.token }}
