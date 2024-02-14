@@ -1,0 +1,28 @@
+name: "Build snap"
+description: "Build the snap with a snapcraft rock."
+inputs:
+  build-base:
+    description: "Build base to use (currently only core22)"
+    required: true
+    default: "core22"
+  snapcraft-version:
+    description: "Snapcraft version to use"
+    required: false
+    default: "8"
+outputs:
+  random-number:
+    description: "Random number"
+    value: ${{ steps.random-number-generator.outputs.random-number }}
+runs:
+  using: "composite"
+  steps:
+    - name: Get Snapcraft
+      run: |
+        sudo apt install skopeo
+        cd /tmp
+        gh release download --repo lengau/snappify --pattern snapcraft-${{ inputs.build-base }}-${{ inputs.snapcraft-version }}* --output snapcraft.rock
+        sudo skopeo --insecure-policy copy oci-archive:snapcraft.rock docker-daemon:snapcraft:latest
+        docker images snapcraft:latest
+    - name: Snap
+      run: |
+        docker run --rm -it -v `pwd`:/project snapcraft:latest pack
