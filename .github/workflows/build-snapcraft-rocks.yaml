@@ -1,0 +1,50 @@
+name: Build and publish snapcraft rocks
+
+on:
+  workflow_call:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '0 7 * * 0'  # 07:00 UTC on Sundays
+
+# Ensure that only one instance of this workflow is running at a time per repo.
+concurrency: ${{ github.repository }}-${{ github.workflow }}
+
+permissions:
+  contents: write
+
+jobs:
+  build-rocks:
+    strategy:
+      matrix:
+        ubuntu-release: [ "core22" ]
+        snapcraft-version: [ "7", "8" ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: canonical/snapcraft-rocks
+          ref: ${{ matrix.ubuntu-release }}-${{ matrix.snapcraft-version }}
+
+      - name: Build rock
+        uses: canonical/craft-actions/rockcraft-pack@main
+        with:
+          rockcraft-channel: candidate
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rock-${{ matrix.ubuntu-release }}-${{ matrix.snapcraft-version }}
+          path: *.snap
+  publish:
+    needs:
+      - build-rocks
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: rock-*
+      - name: Release
+        run: |
+          gh release create $(date --utc +%Y-%m-%d) --latest
+          gh release upload *.rock
