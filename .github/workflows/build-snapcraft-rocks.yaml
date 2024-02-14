@@ -35,10 +35,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rock-${{ matrix.ubuntu-release }}-${{ matrix.snapcraft-version }}
-          path: "*.snap"
+          path: "*.rock"
   publish:
     needs:
       - build-rocks
+    runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -48,3 +49,5 @@ jobs:
         run: |
           gh release create $(date --utc +%Y-%m-%d) --latest
           gh release upload *.rock
+        env:
+          GH_TOKEN: ${{ github.token }}
